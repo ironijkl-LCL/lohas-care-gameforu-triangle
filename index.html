@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<title>固定拼圖遊戲</title>
+
+<style>
+body{
+  font-family:sans-serif;
+  text-align:center;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,70px);
+  gap:4px;
+  justify-content:center;
+  margin:20px;
+}
+
+.cell{
+  width:70px;
+  height:70px;
+  border:1px solid #ccc;
+  background:#f9f9f9;
+}
+
+.piece{
+  width:70px;
+  height:70px;
+  cursor:grab;
+}
+
+/* 四種方向（固定，不可轉） */
+.dir0{ background:linear-gradient(135deg, red 50%, white 50%); }
+.dir1{ background:linear-gradient(225deg, red 50%, white 50%); }
+.dir2{ background:linear-gradient(315deg, red 50%, white 50%); }
+.dir3{ background:linear-gradient(45deg, red 50%, white 50%); }
+
+#pieces{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🧠 拼圖遊戲（固定方向）</h2>
+
+<h3>目標圖案</h3>
+<div id="target" class="grid"></div>
+
+<h3>拼圖區</h3>
+<div id="pieces"></div>
+
+<h3>拼砌區</h3>
+<div id="board" class="grid"></div>
+
+<script>
+// ✅ 目標答案（固定方向）
+const answer = [
+  0,1,0,1,
+  1,2,1,2,
+  0,1,2,3,
+  3,2,3,0
+];
+
+// ===== 生成目標圖 =====
+const target = document.getElementById("target");
+answer.forEach(dir=>{
+  let c=document.createElement("div");
+  c.className="cell";
+
+  let p=document.createElement("div");
+  p.className="piece dir"+dir;
+
+  c.appendChild(p);
+  target.appendChild(c);
+});
+
+// ===== 玩家棋盤 =====
+const board=document.getElementById("board");
+
+for(let i=0;i<16;i++){
+  let cell=document.createElement("div");
+  cell.className="cell";
+  cell.dataset.index=i;
+
+  cell.ondragover=e=>e.preventDefault();
+  cell.ondrop=drop;
+
+  board.appendChild(cell);
+}
+
+// ===== 拼件生成（打亂）=====
+const piecesDiv=document.getElementById("pieces");
+
+let pieces=[...answer];
+
+// 洗牌
+pieces.sort(()=>Math.random()-0.5);
+
+pieces.forEach((dir,i)=>{
+  let p=document.createElement("div");
+  p.className="piece dir"+dir;
+  p.id="p"+i;
+  p.dataset.dir=dir;
+
+  p.draggable=true;
+  p.ondragstart=drag;
+
+  piecesDiv.appendChild(p);
+});
+
+// ===== 拖放 =====
+function drag(e){
+  e.dataTransfer.setData("id",e.target.id);
+}
+
+function drop(e){
+  e.preventDefault();
+  let id=e.dataTransfer.getData("id");
+  let piece=document.getElementById(id);
+
+  if(e.target.classList.contains("cell") && e.target.children.length===0){
+    e.target.appendChild(piece);
+    checkWin();
+  }
+}
+
+// ===== 勝利判斷 =====
+function checkWin(){
+  let cells=document.querySelectorAll("#board .cell");
+  let correct=true;
+
+  cells.forEach((cell,i)=>{
+    if(cell.children.length===0){
+      correct=false;
+      return;
+    }
+
+    let dir=parseInt(cell.children[0].dataset.dir);
+    if(dir!==answer[i]){
+      correct=false;
+    }
+  });
+
+  if(correct){
+    setTimeout(()=>{
+      alert("🎉 完成拼圖！");
+    },100);
+  }
+}
+</script>
+
+</body>
+</html>
