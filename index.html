@@ -42,7 +42,13 @@ body{
   background-color: #555;
 }
 
-/* 基本網格結構 */
+/* ================= 拼圖顯示區域 ================= */
+
+/* 1. 目標圖案與拼圖區：保持原尺寸 (70px) */
+#target, #pieces-container {
+  /* 用於識別或維持原比例 */
+}
+
 .grid{
   display:grid;
   grid-template-columns:repeat(4,70px);
@@ -51,14 +57,13 @@ body{
   margin:20px;
 }
 
-/* 🎯 專屬優化：將玩家拼砌區放大 */
+/* 2. 拼砌區 (#board)：獨立放大 2 倍 (140px) */
 #board {
-  transform: scale(1.15);       /* 整體放大 1.15 倍 */
-  transform-origin: top center; /* 以頂部中央為縮放錨點 */
-  margin-top: 25px;             /* 增加上方間距，避免放大後與標題重疊 */
-  margin-bottom: 45px;          /* 增加下方間距，保留放大後的安全空間 */
+  grid-template-columns: repeat(4, 140px); /* 寬度放大 2 倍 */
+  gap: 6px; /* 稍微加大間距讓視覺更舒適 */
 }
 
+/* 基礎格子樣式 */
 .cell{
   width:70px;
   height:70px;
@@ -66,10 +71,23 @@ body{
   background:#f9f9f9;
 }
 
+/* 拼砌區內的格子：隨之放大 2 倍 */
+#board .cell {
+  width: 140px;
+  height: 140px;
+}
+
+/* 基礎拼片樣式 */
 .piece{
   width:70px;
   height:70px;
   cursor:grab;
+}
+
+/* 當拼片被拖放到拼砌區（#board）時，自動放大 2 倍填滿格子 */
+#board .piece {
+  width: 100%;
+  height: 100%;
 }
 
 /* 四種方向（固定，不可轉） */
@@ -103,7 +121,7 @@ body{
 <h3>拼圖區</h3>
 <div id="pieces"></div>
 
-<h3>拼砌區 (放大版)</h3>
+<h3>🧩 拼砌區（放大版）</h3>
 <div id="board" class="grid"></div>
 
 <audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-games-world-beaten-1229.mp3"></audio>
@@ -128,7 +146,7 @@ function toggleAudio() {
   if (isAudioOn) {
     btn.innerText = "🎵 音樂：開";
     btn.style.backgroundColor = "#e67e22";
-    bgMusic.play().catch(err => console.log("需與玩家互動後播放。"));
+    bgMusic.play().catch(err => console.log("瀏覽器阻擋自動播放"));
   } else {
     btn.innerText = "🎵 音樂：關";
     btn.style.backgroundColor = "#555";
@@ -151,7 +169,7 @@ function loadLevel(level) {
     answer.push(Math.floor(Math.random() * 4));
   }
 
-  // 清空並生成目標圖
+  // 清空並生成目標圖 (維持 70px)
   const target = document.getElementById("target");
   target.innerHTML = "";
   answer.forEach(dir => {
@@ -163,7 +181,7 @@ function loadLevel(level) {
     target.appendChild(c);
   });
 
-  // 清空並生成玩家棋盤
+  // 清空並生成玩家拼砌區 (透過 CSS 自動放大至 140px)
   const board = document.getElementById("board");
   board.innerHTML = "";
   for (let i = 0; i < 16; i++) {
@@ -175,7 +193,7 @@ function loadLevel(level) {
     board.appendChild(cell);
   }
 
-  // 清空並生成打亂拼件
+  // 清空並生成打亂拼件 (維持 70px)
   const piecesDiv = document.getElementById("pieces");
   piecesDiv.innerHTML = "";
   
