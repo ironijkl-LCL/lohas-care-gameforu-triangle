@@ -5,7 +5,6 @@
 <title>固定拼圖遊戲</title>
 
 <style>
-/* 透過 CSS 變數動態控制顏色，完全不更動原本的 Class 結構 */
 :root {
   --theme-color: red;
 }
@@ -15,32 +14,49 @@ body{
   text-align:center;
 }
 
-/* 新增關卡資訊控制區樣式 */
-.level-ctrl {
+/* 關卡與音樂控制區樣式 */
+.game-ctrl {
   margin: 15px auto;
   font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
 }
-.level-btn {
+.level-btn, .audio-btn {
   padding: 6px 15px;
   font-size: 1rem;
-  margin-left: 10px;
   cursor: pointer;
-  background-color: #4CAF50;
-  color: white;
   border: none;
   border-radius: 4px;
+  color: white;
+}
+.level-btn {
+  background-color: #4CAF50;
 }
 .level-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
+.audio-btn {
+  background-color: #555;
+}
 
+/* 基本網格結構 */
 .grid{
   display:grid;
   grid-template-columns:repeat(4,70px);
   gap:4px;
   justify-content:center;
   margin:20px;
+}
+
+/* 🎯 專屬優化：將玩家拼砌區放大 */
+#board {
+  transform: scale(1.15);       /* 整體放大 1.15 倍 */
+  transform-origin: top center; /* 以頂部中央為縮放錨點 */
+  margin-top: 25px;             /* 增加上方間距，避免放大後與標題重疊 */
+  margin-bottom: 45px;          /* 增加下方間距，保留放大後的安全空間 */
 }
 
 .cell{
@@ -56,7 +72,7 @@ body{
   cursor:grab;
 }
 
-/* 四種方向（固定，不可轉）- 顏色綁定 CSS 變數 */
+/* 四種方向（固定，不可轉） */
 .dir0{ background:linear-gradient(135deg, var(--theme-color) 50%, white 50%); }
 .dir1{ background:linear-gradient(225deg, var(--theme-color) 50%, white 50%); }
 .dir2{ background:linear-gradient(315deg, var(--theme-color) 50%, white 50%); }
@@ -75,10 +91,10 @@ body{
 
 <h2>🧠 拼圖遊戲（固定方向）</h2>
 
-<!-- 關卡顯示與控制 -->
-<div class="level-ctrl">
+<div class="game-ctrl">
   <span>目前關卡: <strong id="current-level-val">1</strong> / 50</span>
   <button id="next-level-btn" class="level-btn" disabled onclick="nextLevel()">下一關</button>
+  <button id="audio-toggle-btn" class="audio-btn" onclick="toggleAudio()">🎵 音樂：關</button>
 </div>
 
 <h3>目標圖案</h3>
@@ -87,40 +103,57 @@ body{
 <h3>拼圖區</h3>
 <div id="pieces"></div>
 
-<h3>拼砌區</h3>
+<h3>拼砌區 (放大版)</h3>
 <div id="board" class="grid"></div>
+
+<audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-games-world-beaten-1229.mp3"></audio>
+<audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chime-2015.mp3"></audio>
 
 <script>
 // ===== 關卡與主題設定 =====
 let currentLevel = 1;
 const totalLevels = 50;
-
-// 每 10 關對應的顏色主題 (1-10: 紅, 11-20: 橙, 21-30: 綠, 31-40: 藍, 41-50: 紫)
 const themeColors = ["red", "#ff6b00", "#2ed573", "#1e90ff", "#9b59b6"];
-
-// 當前關卡的答案（動態生成）
 let answer = [];
+
+// ===== 音樂控制變數 =====
+let isAudioOn = false;
+const bgMusic = document.getElementById("bg-music");
+const winSound = document.getElementById("win-sound");
+
+function toggleAudio() {
+  isAudioOn = !isAudioOn;
+  const btn = document.getElementById("audio-toggle-btn");
+  
+  if (isAudioOn) {
+    btn.innerText = "🎵 音樂：開";
+    btn.style.backgroundColor = "#e67e22";
+    bgMusic.play().catch(err => console.log("需與玩家互動後播放。"));
+  } else {
+    btn.innerText = "🎵 音樂：關";
+    btn.style.backgroundColor = "#555";
+    bgMusic.pause();
+  }
+}
 
 // ===== 初始化關卡功能 =====
 function loadLevel(level) {
-  // 1. 根據關卡更換主題顏色 (每 10 關換一次)
   let colorIndex = Math.floor((level - 1) / 10);
   if (colorIndex >= themeColors.length) colorIndex = themeColors.length - 1;
   document.documentElement.style.setProperty('--theme-color', themeColors[colorIndex]);
   
-  // 更新介面文字與按鈕狀態
   document.getElementById("current-level-val").innerText = level;
   document.getElementById("next-level-btn").disabled = true;
 
-  // 2. 動態為當前關卡生成隨機目標答案 (16宮格，隨機填充 0-3 方向)
+  // 動態生成隨機目標答案
   answer = [];
   for (let i = 0; i < 16; i++) {
     answer.push(Math.floor(Math.random() * 4));
   }
 
-  // 3. 清空並重新生成【目標圖】
+  // 清空並生成目標圖
   const target = document.getElementById("target");
-  target.innerHTML = ""; // 清空舊內容
+  target.innerHTML = "";
   answer.forEach(dir => {
     let c = document.createElement("div");
     c.className = "cell";
@@ -130,9 +163,9 @@ function loadLevel(level) {
     target.appendChild(c);
   });
 
-  // 4. 清空並重新建立【玩家拼砌區】
+  // 清空並生成玩家棋盤
   const board = document.getElementById("board");
-  board.innerHTML = ""; // 清空舊內容
+  board.innerHTML = "";
   for (let i = 0; i < 16; i++) {
     let cell = document.createElement("div");
     cell.className = "cell";
@@ -142,12 +175,12 @@ function loadLevel(level) {
     board.appendChild(cell);
   }
 
-  // 5. 清空並重新生成【打亂的拼圖區】
+  // 清空並生成打亂拼件
   const piecesDiv = document.getElementById("pieces");
-  piecesDiv.innerHTML = ""; // 清空舊內容
+  piecesDiv.innerHTML = "";
   
   let pieces = [...answer];
-  pieces.sort(() => Math.random() - 0.5); // 洗牌
+  pieces.sort(() => Math.random() - 0.5);
 
   pieces.forEach((dir, i) => {
     let p = document.createElement("div");
@@ -160,7 +193,7 @@ function loadLevel(level) {
   });
 }
 
-// ===== 進入下一關 =====
+// ===== 下一關 =====
 function nextLevel() {
   if (currentLevel < totalLevels) {
     currentLevel++;
@@ -170,24 +203,20 @@ function nextLevel() {
   }
 }
 
-// ===== 拖放邏輯 (完整保留) =====
+// ===== 拖放邏輯 =====
 function drag(e){
   e.dataTransfer.setData("id", e.target.id);
 }
 
 function drop(e){
   e.preventDefault();
-  let id = e.dataTransfer.setData ? e.dataTransfer.getData("id") : e.dataTransfer.dataTransfer.getData("id");
-  if(!id) id = e.dataTransfer.getData("id"); // 相容性處理
-  
+  let id = e.dataTransfer.getData("id");
   let piece = document.getElementById(id);
 
-  // 確保丟在格子內，且格子內沒有其他拼片
   if(e.target.classList.contains("cell") && e.target.children.length === 0){
     e.target.appendChild(piece);
     checkWin();
   } 
-  // 若不小心丟到已有拼片的上面，則嘗試丟到該拼片的父格子上
   else if(e.target.classList.contains("piece") && e.target.parentElement.children.length === 1) {
     e.target.parentElement.appendChild(piece);
     checkWin();
@@ -204,7 +233,6 @@ function checkWin(){
       correct = false;
       return;
     }
-
     let dir = parseInt(cell.children[0].dataset.dir);
     if(dir !== answer[i]){
       correct = false;
@@ -212,12 +240,15 @@ function checkWin(){
   });
 
   if(correct){
+    if (isAudioOn) {
+      winSound.currentTime = 0;
+      winSound.play();
+    }
+
     setTimeout(() => {
       alert("🎉 完成第 " + currentLevel + " 關拼圖！");
-      // 啟用下一關按鈕
       document.getElementById("next-level-btn").disabled = false;
       
-      // 如果是最後一關，直接跳出通關祝賀
       if (currentLevel === totalLevels) {
         alert("太厲害了！你已經完成了全部 50 關的終極挑戰！👑");
       }
@@ -225,7 +256,7 @@ function checkWin(){
   }
 }
 
-// ===== 遊戲首次啟動 =====
+// ===== 啟動遊戲 =====
 window.onload = function() {
   loadLevel(currentLevel);
 };
