@@ -5,9 +5,34 @@
 <title>固定拼圖遊戲</title>
 
 <style>
+/* 透過 CSS 變數動態控制顏色，完全不更動原本的 Class 結構 */
+:root {
+  --theme-color: red;
+}
+
 body{
   font-family:sans-serif;
   text-align:center;
+}
+
+/* 新增關卡資訊控制區樣式 */
+.level-ctrl {
+  margin: 15px auto;
+  font-size: 1.2rem;
+}
+.level-btn {
+  padding: 6px 15px;
+  font-size: 1rem;
+  margin-left: 10px;
+  cursor: pointer;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+.level-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .grid{
@@ -31,11 +56,11 @@ body{
   cursor:grab;
 }
 
-/* 四種方向（固定，不可轉） */
-.dir0{ background:linear-gradient(135deg, red 50%, white 50%); }
-.dir1{ background:linear-gradient(225deg, red 50%, white 50%); }
-.dir2{ background:linear-gradient(315deg, red 50%, white 50%); }
-.dir3{ background:linear-gradient(45deg, red 50%, white 50%); }
+/* 四種方向（固定，不可轉）- 顏色綁定 CSS 變數 */
+.dir0{ background:linear-gradient(135deg, var(--theme-color) 50%, white 50%); }
+.dir1{ background:linear-gradient(225deg, var(--theme-color) 50%, white 50%); }
+.dir2{ background:linear-gradient(315deg, var(--theme-color) 50%, white 50%); }
+.dir3{ background:linear-gradient(45deg, var(--theme-color) 50%, white 50%); }
 
 #pieces{
   display:flex;
@@ -50,6 +75,12 @@ body{
 
 <h2>🧠 拼圖遊戲（固定方向）</h2>
 
+<!-- 關卡顯示與控制 -->
+<div class="level-ctrl">
+  <span>目前關卡: <strong id="current-level-val">1</strong> / 50</span>
+  <button id="next-level-btn" class="level-btn" disabled onclick="nextLevel()">下一關</button>
+</div>
+
 <h3>目標圖案</h3>
 <div id="target" class="grid"></div>
 
@@ -60,100 +91,144 @@ body{
 <div id="board" class="grid"></div>
 
 <script>
-// ✅ 目標答案（固定方向）
-const answer = [
-  0,1,0,1,
-  1,2,1,2,
-  0,1,2,3,
-  3,2,3,0
-];
+// ===== 關卡與主題設定 =====
+let currentLevel = 1;
+const totalLevels = 50;
 
-// ===== 生成目標圖 =====
-const target = document.getElementById("target");
-answer.forEach(dir=>{
-  let c=document.createElement("div");
-  c.className="cell";
+// 每 10 關對應的顏色主題 (1-10: 紅, 11-20: 橙, 21-30: 綠, 31-40: 藍, 41-50: 紫)
+const themeColors = ["red", "#ff6b00", "#2ed573", "#1e90ff", "#9b59b6"];
 
-  let p=document.createElement("div");
-  p.className="piece dir"+dir;
+// 當前關卡的答案（動態生成）
+let answer = [];
 
-  c.appendChild(p);
-  target.appendChild(c);
-});
+// ===== 初始化關卡功能 =====
+function loadLevel(level) {
+  // 1. 根據關卡更換主題顏色 (每 10 關換一次)
+  let colorIndex = Math.floor((level - 1) / 10);
+  if (colorIndex >= themeColors.length) colorIndex = themeColors.length - 1;
+  document.documentElement.style.setProperty('--theme-color', themeColors[colorIndex]);
+  
+  // 更新介面文字與按鈕狀態
+  document.getElementById("current-level-val").innerText = level;
+  document.getElementById("next-level-btn").disabled = true;
 
-// ===== 玩家棋盤 =====
-const board=document.getElementById("board");
+  // 2. 動態為當前關卡生成隨機目標答案 (16宮格，隨機填充 0-3 方向)
+  answer = [];
+  for (let i = 0; i < 16; i++) {
+    answer.push(Math.floor(Math.random() * 4));
+  }
 
-for(let i=0;i<16;i++){
-  let cell=document.createElement("div");
-  cell.className="cell";
-  cell.dataset.index=i;
+  // 3. 清空並重新生成【目標圖】
+  const target = document.getElementById("target");
+  target.innerHTML = ""; // 清空舊內容
+  answer.forEach(dir => {
+    let c = document.createElement("div");
+    c.className = "cell";
+    let p = document.createElement("div");
+    p.className = "piece dir" + dir;
+    c.appendChild(p);
+    target.appendChild(c);
+  });
 
-  cell.ondragover=e=>e.preventDefault();
-  cell.ondrop=drop;
+  // 4. 清空並重新建立【玩家拼砌區】
+  const board = document.getElementById("board");
+  board.innerHTML = ""; // 清空舊內容
+  for (let i = 0; i < 16; i++) {
+    let cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.index = i;
+    cell.ondragover = e => e.preventDefault();
+    cell.ondrop = drop;
+    board.appendChild(cell);
+  }
 
-  board.appendChild(cell);
+  // 5. 清空並重新生成【打亂的拼圖區】
+  const piecesDiv = document.getElementById("pieces");
+  piecesDiv.innerHTML = ""; // 清空舊內容
+  
+  let pieces = [...answer];
+  pieces.sort(() => Math.random() - 0.5); // 洗牌
+
+  pieces.forEach((dir, i) => {
+    let p = document.createElement("div");
+    p.className = "piece dir" + dir;
+    p.id = "p" + i;
+    p.dataset.dir = dir;
+    p.draggable = true;
+    p.ondragstart = drag;
+    piecesDiv.appendChild(p);
+  });
 }
 
-// ===== 拼件生成（打亂）=====
-const piecesDiv=document.getElementById("pieces");
+// ===== 進入下一關 =====
+function nextLevel() {
+  if (currentLevel < totalLevels) {
+    currentLevel++;
+    loadLevel(currentLevel);
+  } else {
+    alert("恭喜你！已成功通關全部 50 個關卡！🎉");
+  }
+}
 
-let pieces=[...answer];
-
-// 洗牌
-pieces.sort(()=>Math.random()-0.5);
-
-pieces.forEach((dir,i)=>{
-  let p=document.createElement("div");
-  p.className="piece dir"+dir;
-  p.id="p"+i;
-  p.dataset.dir=dir;
-
-  p.draggable=true;
-  p.ondragstart=drag;
-
-  piecesDiv.appendChild(p);
-});
-
-// ===== 拖放 =====
+// ===== 拖放邏輯 (完整保留) =====
 function drag(e){
-  e.dataTransfer.setData("id",e.target.id);
+  e.dataTransfer.setData("id", e.target.id);
 }
 
 function drop(e){
   e.preventDefault();
-  let id=e.dataTransfer.getData("id");
-  let piece=document.getElementById(id);
+  let id = e.dataTransfer.setData ? e.dataTransfer.getData("id") : e.dataTransfer.dataTransfer.getData("id");
+  if(!id) id = e.dataTransfer.getData("id"); // 相容性處理
+  
+  let piece = document.getElementById(id);
 
-  if(e.target.classList.contains("cell") && e.target.children.length===0){
+  // 確保丟在格子內，且格子內沒有其他拼片
+  if(e.target.classList.contains("cell") && e.target.children.length === 0){
     e.target.appendChild(piece);
+    checkWin();
+  } 
+  // 若不小心丟到已有拼片的上面，則嘗試丟到該拼片的父格子上
+  else if(e.target.classList.contains("piece") && e.target.parentElement.children.length === 1) {
+    e.target.parentElement.appendChild(piece);
     checkWin();
   }
 }
 
 // ===== 勝利判斷 =====
 function checkWin(){
-  let cells=document.querySelectorAll("#board .cell");
-  let correct=true;
+  let cells = document.querySelectorAll("#board .cell");
+  let correct = true;
 
-  cells.forEach((cell,i)=>{
-    if(cell.children.length===0){
-      correct=false;
+  cells.forEach((cell, i) => {
+    if(cell.children.length === 0){
+      correct = false;
       return;
     }
 
-    let dir=parseInt(cell.children[0].dataset.dir);
-    if(dir!==answer[i]){
-      correct=false;
+    let dir = parseInt(cell.children[0].dataset.dir);
+    if(dir !== answer[i]){
+      correct = false;
     }
   });
 
   if(correct){
-    setTimeout(()=>{
-      alert("🎉 完成拼圖！");
-    },100);
+    setTimeout(() => {
+      alert("🎉 完成第 " + currentLevel + " 關拼圖！");
+      // 啟用下一關按鈕
+      document.getElementById("next-level-btn").disabled = false;
+      
+      // 如果是最後一關，直接跳出通關祝賀
+      if (currentLevel === totalLevels) {
+        alert("太厲害了！你已經完成了全部 50 關的終極挑戰！👑");
+      }
+    }, 100);
   }
 }
+
+// ===== 遊戲首次啟動 =====
+window.onload = function() {
+  loadLevel(currentLevel);
+};
 </script>
 
 </body>
