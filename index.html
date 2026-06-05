@@ -42,13 +42,9 @@ body{
   background-color: #555;
 }
 
-/* ================= 拼圖顯示區域 ================= */
+/* ================= 拼圖顯示區域尺寸規劃 ================= */
 
-/* 1. 目標圖案與拼圖區：保持原尺寸 (70px) */
-#target, #pieces-container {
-  /* 用於識別或維持原比例 */
-}
-
+/* 1. 基礎網格與目標圖案 (保持原尺寸 70px) */
 .grid{
   display:grid;
   grid-template-columns:repeat(4,70px);
@@ -56,35 +52,42 @@ body{
   justify-content:center;
   margin:20px;
 }
-
-/* 2. 拼砌區 (#board)：獨立放大 2 倍 (140px) */
-#board {
-  grid-template-columns: repeat(4, 140px); /* 寬度放大 2 倍 */
-  gap: 6px; /* 稍微加大間距讓視覺更舒適 */
-}
-
-/* 基礎格子樣式 */
 .cell{
   width:70px;
   height:70px;
   border:1px solid #ccc;
   background:#f9f9f9;
 }
-
-/* 拼砌區內的格子：隨之放大 2 倍 */
-#board .cell {
-  width: 140px;
-  height: 140px;
-}
-
-/* 基礎拼片樣式 */
 .piece{
   width:70px;
   height:70px;
   cursor:grab;
 }
 
-/* 當拼片被拖放到拼砌區（#board）時，自動放大 2 倍填滿格子 */
+/* 2. 拼圖區 (#pieces)：拼片放大 1.5 倍 (105px) */
+#pieces {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:12px; /* 稍微加大間距 */
+  margin: 15px auto;
+  max-width: 600px;
+}
+#pieces .piece {
+  width: 105px;  /* 70px * 1.5 = 105px */
+  height: 105px;
+}
+
+/* 3. 拼砌區 (#board)：獨立放大 2 倍 (140px) */
+#board {
+  grid-template-columns: repeat(4, 140px);
+  gap: 6px;
+}
+#board .cell {
+  width: 140px;
+  height: 140px;
+}
+/* 當拼片被拖放到拼砌區時，自動放大至 2 倍填滿格子 */
 #board .piece {
   width: 100%;
   height: 100%;
@@ -96,12 +99,6 @@ body{
 .dir2{ background:linear-gradient(315deg, var(--theme-color) 50%, white 50%); }
 .dir3{ background:linear-gradient(45deg, var(--theme-color) 50%, white 50%); }
 
-#pieces{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:10px;
-}
 </style>
 </head>
 
@@ -118,10 +115,10 @@ body{
 <h3>目標圖案</h3>
 <div id="target" class="grid"></div>
 
-<h3>拼圖區</h3>
+<h3>🧩 拼圖區（放大 1.5 倍）</h3>
 <div id="pieces"></div>
 
-<h3>🧩 拼砌區（放大版）</h3>
+<h3>🧩 拼砌區（放大 2 倍）</h3>
 <div id="board" class="grid"></div>
 
 <audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-games-world-beaten-1229.mp3"></audio>
@@ -181,7 +178,7 @@ function loadLevel(level) {
     target.appendChild(c);
   });
 
-  // 清空並生成玩家拼砌區 (透過 CSS 自動放大至 140px)
+  // 清空並生成玩家拼砌區 (140px)
   const board = document.getElementById("board");
   board.innerHTML = "";
   for (let i = 0; i < 16; i++) {
@@ -193,7 +190,7 @@ function loadLevel(level) {
     board.appendChild(cell);
   }
 
-  // 清空並生成打亂拼件 (維持 70px)
+  // 清空並生成打亂拼件 (透過 CSS 控制在拼圖區顯示為 105px)
   const piecesDiv = document.getElementById("pieces");
   piecesDiv.innerHTML = "";
   
