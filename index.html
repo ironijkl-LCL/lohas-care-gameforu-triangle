@@ -2,279 +2,310 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<title>固定拼圖遊戲</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LohasCare - 智慧圖形認知訓練</title>
 
 <style>
+/* --- Apple & Oasis 全局變數定義 --- */
 :root {
-  --theme-color: red;
+  --apple-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang HK", "Microsoft JhengHei", sans-serif;
+  --oasis-bg: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+  --card-bg: rgba(255, 255, 255, 0.55);
+  --card-border: 1px solid rgba(255, 255, 255, 0.45);
+  --apple-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+  --text-primary: #1d1d1f;
+  --text-secondary: #86868b;
+  --accent-color: #0071e3;
+  --cell-size: 88px; /* 增大尺寸，提升操作容錯率 */
 }
 
-body{
-  font-family:sans-serif;
-  text-align:center;
+/* --- 基礎樣式重設 --- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* 關卡與音樂控制區樣式 */
-.game-ctrl {
-  margin: 15px auto;
-  font-size: 1.2rem;
+body {
+  font-family: var(--apple-font);
+  background: var(--oasis-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 40px 20px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: 15px;
-}
-.level-btn, .audio-btn {
-  padding: 6px 15px;
-  font-size: 1rem;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  color: white;
-}
-.level-btn {
-  background-color: #4CAF50;
-}
-.level-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-.audio-btn {
-  background-color: #555;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ================= 拼圖顯示區域尺寸規劃 ================= */
-
-/* 1. 基礎網格與目標圖案 (保持原尺寸 70px) */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(4,70px);
-  gap:4px;
-  justify-content:center;
-  margin:20px;
-}
-.cell{
-  width:70px;
-  height:70px;
-  border:1px solid #ccc;
-  background:#f9f9f9;
-}
-.piece{
-  width:70px;
-  height:70px;
-  cursor:grab;
+/* --- 頂層容器與 Apple 風格排版 --- */
+.container {
+  max-width: 900px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* 2. 拼圖區 (#pieces)：拼片放大 1.5 倍 (105px) */
-#pieces {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:12px; /* 稍微加大間距 */
-  margin: 15px auto;
-  max-width: 600px;
-}
-#pieces .piece {
-  width: 105px;  /* 70px * 1.5 = 105px */
-  height: 105px;
+h2 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
-/* 3. 拼砌區 (#board)：獨立放大 2 倍 (140px) */
-#board {
-  grid-template-columns: repeat(4, 140px);
+.subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin-bottom: 40px;
+  font-weight: 450;
+  letter-spacing: 0.2px;
+}
+
+/* --- 響應式佈局架構 --- */
+.game-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* --- Apple 毛玻璃卡片樣式 --- */
+.card {
+  background: var(--card-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: var(--card-border);
+  border-radius: 24px;
+  padding: 30px;
+  box-shadow: var(--apple-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* --- 網格與單元格設計 --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, var(--cell-size));
   gap: 6px;
+  justify-content: center;
 }
+
+.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+/* 讓目標區與拼砌區有微妙的視覺區隔 */
 #board .cell {
-  width: 140px;
-  height: 140px;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
 }
-/* 當拼片被拖放到拼砌區時，自動放大至 2 倍填滿格子 */
-#board .piece {
+
+/* --- 拼件與高級四大方向漸變 --- */
+.piece {
   width: 100%;
   height: 100%;
+  cursor: grab;
+  border-radius: 10px;
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s ease;
 }
 
-/* 四種方向（固定，不可轉） */
-.dir0{ background:linear-gradient(135deg, var(--theme-color) 50%, white 50%); }
-.dir1{ background:linear-gradient(225deg, var(--theme-color) 50%, white 50%); }
-.dir2{ background:linear-gradient(315deg, var(--theme-color) 50%, white 50%); }
-.dir3{ background:linear-gradient(45deg, var(--theme-color) 50%, white 50%); }
+.piece:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
 
+/* 高級幾何方向漸變 (紅/白高對比且柔和) */
+.dir0 { background: linear-gradient(135deg, #ff3b30 50%, #ffffff 50%); }
+.dir1 { background: linear-gradient(225deg, #ff3b30 50%, #ffffff 50%); }
+.dir2 { background: linear-gradient(315deg, #ff3b30 50%, #ffffff 50%); }
+.dir3 { background: linear-gradient(45deg,  #ff3b30 50%, #ffffff 50%); }
+
+/* --- 獨立的下方拼圖候選區 --- */
+.pieces-pool-card {
+  width: 100%;
+  max-width: 792px;
+  margin-top: 12px;
+}
+
+#pieces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+  min-height: calc(var(--cell-size) + 10px);
+  width: 100%;
+}
+
+/* 候選區內的拼件自帶輕微陰影，強調可互動性 */
+#pieces .piece {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 修正拖拽中的半透明核心表現 */
+.piece.dragging {
+  opacity: 0.5;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🧠 拼圖遊戲（固定方向）</h2>
+<div class="container">
+  <h2>🧠 智慧圖形認知訓練</h2>
+  <div class="subtitle">LohasCare 樂活自主管理系統</div>
 
-<div class="game-ctrl">
-  <span>目前關卡: <strong id="current-level-val">1</strong> / 50</span>
-  <button id="next-level-btn" class="level-btn" disabled onclick="nextLevel()">下一關</button>
-  <button id="audio-toggle-btn" class="audio-btn" onclick="toggleAudio()">🎵 音樂：關</button>
+  <div class="game-layout">
+    <div class="card">
+      <h3>目標圖案</h3>
+      <div id="target" class="grid"></div>
+    </div>
+
+    <div class="card">
+      <h3>拼砌畫布</h3>
+      <div id="board" class="grid"></div>
+    </div>
+
+    <div class="card pieces-pool-card">
+      <h3>隨機拼圖物件</h3>
+      <div id="pieces"></div>
+    </div>
+  </div>
 </div>
 
-<h3>目標圖案</h3>
-<div id="target" class="grid"></div>
-
-<h3>🧩 拼圖區（放大 1.5 倍）</h3>
-<div id="pieces"></div>
-
-<h3>🧩 拼砌區（放大 2 倍）</h3>
-<div id="board" class="grid"></div>
-
-<audio id="bg-music" loop src="https://assets.mixkit.co/music/preview/mixkit-games-world-beaten-1229.mp3"></audio>
-<audio id="win-sound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chime-2015.mp3"></audio>
-
 <script>
-// ===== 關卡與主題設定 =====
-let currentLevel = 1;
-const totalLevels = 50;
-const themeColors = ["red", "#ff6b00", "#2ed573", "#1e90ff", "#9b59b6"];
-let answer = [];
+// ✅ 核心目標數據 [cite: 4]
+const answer = [
+  0, 1, 0, 1,
+  1, 2, 1, 2,
+  0, 1, 2, 3,
+  3, 2, 3, 0
+];
 
-// ===== 音樂控制變數 =====
-let isAudioOn = false;
-const bgMusic = document.getElementById("bg-music");
-const winSound = document.getElementById("win-sound");
+// ===== 初始化：生成目標引導圖 =====
+const targetContainer = document.getElementById("target");
+answer.forEach(dir => {
+  const cell = document.createElement("div");
+  cell.className = "cell";
 
-function toggleAudio() {
-  isAudioOn = !isAudioOn;
-  const btn = document.getElementById("audio-toggle-btn");
-  
-  if (isAudioOn) {
-    btn.innerText = "🎵 音樂：開";
-    btn.style.backgroundColor = "#e67e22";
-    bgMusic.play().catch(err => console.log("瀏覽器阻擋自動播放"));
-  } else {
-    btn.innerText = "🎵 音樂：關";
-    btn.style.backgroundColor = "#555";
-    bgMusic.pause();
-  }
+  const piece = document.createElement("div");
+  piece.className = "piece dir" + dir;
+
+  cell.appendChild(piece);
+  targetContainer.appendChild(cell);
+});
+
+// ===== 初始化：建構玩家互動棋盤 =====
+const boardContainer = document.getElementById("board");
+for (let i = 0; i < 16; i++) {
+  const cell = document.createElement("div");
+  cell.className = "cell";
+  cell.dataset.index = i;
+
+  // 綁定原生拖拽事件控制 [cite: 6]
+  cell.ondragover = e => e.preventDefault();
+  cell.ondrop = drop;
+
+  boardContainer.appendChild(cell);
 }
 
-// ===== 初始化關卡功能 =====
-function loadLevel(level) {
-  let colorIndex = Math.floor((level - 1) / 10);
-  if (colorIndex >= themeColors.length) colorIndex = themeColors.length - 1;
-  document.documentElement.style.setProperty('--theme-color', themeColors[colorIndex]);
-  
-  document.getElementById("current-level-val").innerText = level;
-  document.getElementById("next-level-btn").disabled = true;
+// ===== 初始化：打亂並生成物件池 =====
+const piecesPool = document.getElementById("pieces");
+let shuffledPieces = [...answer];
 
-  // 動態生成隨機目標答案
-  answer = [];
-  for (let i = 0; i < 16; i++) {
-    answer.push(Math.floor(Math.random() * 4));
-  }
+// 經典洗牌算法 [cite: 7]
+shuffledPieces.sort(() => Math.random() - 0.5);
 
-  // 清空並生成目標圖 (維持 70px)
-  const target = document.getElementById("target");
-  target.innerHTML = "";
-  answer.forEach(dir => {
-    let c = document.createElement("div");
-    c.className = "cell";
-    let p = document.createElement("div");
-    p.className = "piece dir" + dir;
-    c.appendChild(p);
-    target.appendChild(c);
-  });
+shuffledPieces.forEach((dir, i) => {
+  const piece = document.createElement("div");
+  piece.className = "piece dir" + dir;
+  piece.id = "piece_" + i;
+  piece.dataset.dir = dir;
+  piece.draggable = true;
 
-  // 清空並生成玩家拼砌區 (140px)
-  const board = document.getElementById("board");
-  board.innerHTML = "";
-  for (let i = 0; i < 16; i++) {
-    let cell = document.createElement("div");
-    cell.className = "cell";
-    cell.dataset.index = i;
-    cell.ondragover = e => e.preventDefault();
-    cell.ondrop = drop;
-    board.appendChild(cell);
-  }
+  // 核心拖拽監聽器 [cite: 7]
+  piece.ondragstart = drag;
+  piece.ondragend = dragEnd;
 
-  // 清空並生成打亂拼件 (透過 CSS 控制在拼圖區顯示為 105px)
-  const piecesDiv = document.getElementById("pieces");
-  piecesDiv.innerHTML = "";
-  
-  let pieces = [...answer];
-  pieces.sort(() => Math.random() - 0.5);
+  piecesPool.appendChild(piece);
+});
 
-  pieces.forEach((dir, i) => {
-    let p = document.createElement("div");
-    p.className = "piece dir" + dir;
-    p.id = "p" + i;
-    p.dataset.dir = dir;
-    p.draggable = true;
-    p.ondragstart = drag;
-    piecesDiv.appendChild(p);
-  });
+// ===== 核心拖放控制邏輯 =====
+function drag(e) {
+  e.dataTransfer.setData("text/plain", e.target.id);
+  e.target.classList.add("dragging");
 }
 
-// ===== 下一關 =====
-function nextLevel() {
-  if (currentLevel < totalLevels) {
-    currentLevel++;
-    loadLevel(currentLevel);
-  } else {
-    alert("恭喜你！已成功通關全部 50 個關卡！🎉");
-  }
+function dragEnd(e) {
+  e.target.classList.remove("dragging");
 }
 
-// ===== 拖放邏輯 =====
-function drag(e){
-  e.dataTransfer.setData("id", e.target.id);
-}
-
-function drop(e){
+function drop(e) {
   e.preventDefault();
-  let id = e.dataTransfer.getData("id");
-  let piece = document.getElementById(id);
+  const id = e.dataTransfer.getData("text/plain");
+  const piece = document.getElementById(id);
+  
+  // 尋找合適的落點單元格（若落點是內部圖形，則向上尋找 cell 容器）
+  let targetCell = e.target;
+  if (targetCell.classList.contains("piece")) {
+    targetCell = targetCell.parentElement;
+  }
 
-  if(e.target.classList.contains("cell") && e.target.children.length === 0){
-    e.target.appendChild(piece);
-    checkWin();
-  } 
-  else if(e.target.classList.contains("piece") && e.target.parentElement.children.length === 1) {
-    e.target.parentElement.appendChild(piece);
+  // 確保目標是單元格，且內部目前沒有容納其他拼件 [cite: 9]
+  if (targetCell.classList.contains("cell") && targetCell.children.length === 0) {
+    targetCell.appendChild(piece);
     checkWin();
   }
 }
 
-// ===== 勝利判斷 =====
-function checkWin(){
-  let cells = document.querySelectorAll("#board .cell");
-  let correct = true;
+// ===== 智慧勝利條件判定 =====
+function checkWin() {
+  const boardCells = document.querySelectorAll("#board .cell");
+  let isPerfect = true;
 
-  cells.forEach((cell, i) => {
-    if(cell.children.length === 0){
-      correct = false;
+  boardCells.forEach((cell, i) => {
+    // 若有任一空格尚未填滿，則未完賽 [cite: 10]
+    if (cell.children.length === 0) {
+      isPerfect = false;
       return;
     }
-    let dir = parseInt(cell.children[0].dataset.dir);
-    if(dir !== answer[i]){
-      correct = false;
+
+    // 比對方向代碼與預設答案是否完全吻合 [cite: 10]
+    const currentDir = parseInt(cell.children[0].dataset.dir);
+    if (currentDir !== answer[i]) {
+      isPerfect = false;
     }
   });
 
-  if(correct){
-    if (isAudioOn) {
-      winSound.currentTime = 0;
-      winSound.play();
-    }
-
+  // 成功過關彈窗提示 [cite: 11]
+  if (isPerfect) {
     setTimeout(() => {
-      alert("🎉 完成第 " + currentLevel + " 關拼圖！");
-      document.getElementById("next-level-btn").disabled = false;
-      
-      if (currentLevel === totalLevels) {
-        alert("太厲害了！你已經完成了全部 50 關的終極挑戰！👑");
-      }
-    }, 100);
+      alert("🎉 太棒了！您已成功完成圖形認知拼圖！");
+    }, 180);
   }
 }
-
-// ===== 啟動遊戲 =====
-window.onload = function() {
-  loadLevel(currentLevel);
-};
 </script>
 
 </body>
